@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot E-commerce Demo</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        section { margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        h2 { margin-top: 0; }
+        .item { padding: 10px; background: #f9f9f9; margin-bottom: 5px; }
+        button { cursor: pointer; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Spring Boot E-commerce Demo</h1>
+
+    <section>
+        <h2>1. Add a Product</h2>
+        <input type="text" id="prodName" placeholder="Name (e.g. Phone)">
+        <input type="number" id="prodPrice" placeholder="Price (e.g. 500)">
+        <input type="text" id="prodDesc" placeholder="Description">
+        <button onclick="addProduct()">Add Product</button>
+        <div id="addResult" style="margin-top: 10px;"></div>
+    </section>
+
+    <section>
+        <h2>2. Available Products</h2>
+        <div id="productList">Loading...</div>
+        <br>
+        <button onclick="loadProducts()">Refresh Products</button>
+    </section>
+
+    <section>
+        <h2>2. Place an Order</h2>
+        <p>Enter Product IDs separated by commas (e.g., <code>1, 2</code>):</p>
+        <input type="text" id="productIdsInput" placeholder="1, 2">
+        <button onclick="placeOrder()">Place Order</button>
+        <div id="orderResult" style="margin-top: 10px;"></div>
+    </section>
+
+    <section>
+        <h2>3. Your Orders</h2>
+        <div id="orderList">Loading...</div>
+        <br>
+        <button onclick="loadOrders()">Refresh Orders</button>
+    </section>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        async function addProduct() {
+            const name = document.getElementById('prodName').value;
+            const price = document.getElementById('prodPrice').value;
+            const desc = document.getElementById('prodDesc').value;
+
+            if (!name || !price) {
+                alert('Name and Price are required');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price: parseFloat(price), description: desc })
+                });
+
+                if (res.ok) {
+                    document.getElementById('addResult').innerHTML = '<span style="color:green">Product added!</span>';
+                    loadProducts(); // Refresh list
+                    // Clear inputs
+                    document.getElementById('prodName').value = '';
+                    document.getElementById('prodPrice').value = '';
+                    document.getElementById('prodDesc').value = '';
+                } else {
+                    document.getElementById('addResult').innerHTML = '<span style="color:red">Error adding product</span>';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadProducts() {
+            const res = await fetch(`${API_BASE}/products`);
+            const data = await res.json();
+            const list = document.getElementById('productList');
+            list.innerHTML = data.map(p => 
+                `<div class="item"><strong>ID ${p.id}</strong>: ${p.name} - $${p.price}</div>`
+            ).join('');
+        }
+
+        async function loadOrders() {
+            const res = await fetch(`${API_BASE}/orders`);
+            const data = await res.json();
+            const list = document.getElementById('orderList');
+            list.innerHTML = data.map(o => 
+                `<div class="item">
+                    <strong>Order #${o.id}</strong> - Total: $${o.totalPrice}
+                    <br><small>Items: ${o.products.map(p => p.name).join(', ')}</small>
+                </div>`
+            ).join('');
+        }
+
+        async function placeOrder() {
+            const input = document.getElementById('productIdsInput').value;
+            const ids = input.split(',').map(id => parseInt(id.trim())).filter(n => !isNaN(n));
+            
+            if (ids.length === 0) {
+                alert('Please enter at least one valid Product ID');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ids)
+                });
+                
+                if (res.ok) {
+                    const order = await res.json();
+                    document.getElementById('orderResult').innerHTML = `<span style="color:green">Order #${order.id} placed successfully!</span>`;
+                    loadOrders(); // Refresh list
+                } else {
+                    document.getElementById('orderResult').innerHTML = `<span style="color:red">Error: ${res.statusText}</span>`;
+                }
+            } catch (e) {
+                document.getElementById('orderResult').innerHTML = `<span style="color:red">Error: ${e.message}</span>`;
+            }
+        }
+
+        // Load data on start
+        loadProducts();
+        loadOrders();
+    </script>
+</body>
+</html>
