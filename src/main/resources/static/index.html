@@ -17,13 +17,37 @@
 <body>
     <h1>Spring Boot E-commerce Demo</h1>
 
-    <section>
-        <h2>1. Add a Product</h2>
-        <input type="text" id="prodName" placeholder="Name (e.g. Phone)">
-        <input type="number" id="prodPrice" placeholder="Price (e.g. 500)">
-        <input type="text" id="prodDesc" placeholder="Description">
-        <button onclick="addProduct()">Add Product</button>
-        <div id="addResult" style="margin-top: 10px;"></div>
+    <section style="display: flex; gap: 20px; align-items: flex-start; background: #e3f2fd; border-color: #2196f3;">
+        <div style="flex: 1;">
+            <h2>0. Authentication</h2>
+            <div style="display: flex; gap: 10px; max-width: 400px; margin-bottom: 10px;">
+                <input type="text" id="username" placeholder="Username" style="flex: 1;">
+                <input type="password" id="password" placeholder="Password" style="flex: 1;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="register()" style="background: #28a745;">Register</button>
+                <button onclick="login()" style="background: #17a2b8;">Login (Save Creds)</button>
+                <button onclick="logout()" style="background: #dc3545;">Logout</button>
+            </div>
+        </div>
+        <div id="authResult" style="flex: 1; border: 2px dashed #2196f3; padding: 15px; border-radius: 8px; font-family: monospace; min-height: 80px; background: #fff;">
+            <em>Not logged in.</em>
+        </div>
+    </section>
+
+    <section style="display: flex; gap: 20px; align-items: flex-start;">
+        <div style="flex: 1;">
+            <h2>1. Add a Product</h2>
+            <div style="display: flex; flex-direction: column; gap: 10px; max-width: 300px;">
+                <input type="text" id="prodName" placeholder="Name (e.g. Phone)">
+                <input type="number" id="prodPrice" placeholder="Price (e.g. 500)">
+                <input type="text" id="prodDesc" placeholder="Description">
+                <button onclick="addProduct()">Add Product</button>
+            </div>
+        </div>
+        <div id="addResult" style="flex: 1; border: 2px dashed #ccc; padding: 15px; border-radius: 8px; font-family: monospace; min-height: 100px; background: #fff;">
+            <em>Result will appear here...</em>
+        </div>
     </section>
 
     <section>
@@ -33,16 +57,22 @@
         <button onclick="loadProducts()">Refresh Products</button>
     </section>
 
-    <section>
-        <h2>2. Place an Order</h2>
-        <p>Enter Product IDs separated by commas (e.g., <code>1, 2</code>):</p>
-        <input type="text" id="productIdsInput" placeholder="1, 2">
-        <button onclick="placeOrder()">Place Order</button>
-        <div id="orderResult" style="margin-top: 10px;"></div>
+    <section style="display: flex; gap: 20px; align-items: flex-start;">
+        <div style="flex: 1;">
+            <h2>3. Place an Order (Auth Required)</h2>
+            <p>Enter Product IDs separated by commas (e.g., <code>1, 2</code>):</p>
+            <div style="display: flex; gap: 10px; max-width: 300px;">
+                <input type="text" id="productIdsInput" placeholder="1, 2" style="flex: 1;">
+                <button onclick="placeOrder()">Place Order</button>
+            </div>
+        </div>
+        <div id="orderResult" style="flex: 1; border: 2px dashed #ccc; padding: 15px; border-radius: 8px; font-family: monospace; min-height: 100px; background: #fff;">
+            <em>Order status will appear here...</em>
+        </div>
     </section>
 
     <section>
-        <h2>3. Your Orders</h2>
+        <h2>4. Your Orders (Auth Required)</h2>
         <div id="orderList">Loading...</div>
         <br>
         <button onclick="loadOrders()">Refresh Orders</button>
@@ -50,6 +80,51 @@
 
     <script>
         const API_BASE = 'http://localhost:8080/api';
+        let authHeader = null;
+
+        function getAuthHeaders() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authHeader) {
+                headers['Authorization'] = authHeader;
+            }
+            return headers;
+        }
+
+        async function register() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if (!user || !pass) return alert("Username/Pass required");
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                if (res.ok) {
+                    document.getElementById('authResult').innerHTML = `<span style="color:green">Registered ${user}! Now click Login.</span>`;
+                } else {
+                    document.getElementById('authResult').innerHTML = `<span style="color:red">Registration failed</span>`;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if (!user || !pass) return alert("Username/Pass required");
+            
+            // Create Basic Auth Header: "Basic " + base64(user:pass)
+            authHeader = 'Basic ' + btoa(user + ':' + pass);
+            document.getElementById('authResult').innerHTML = `<span style="color:blue">Logged in as ${user}! Credentials saved.</span>`;
+            loadOrders(); // Refresh orders now that we are logged in
+        }
+
+        function logout() {
+            authHeader = null;
+            document.getElementById('authResult').innerText = "Logged out.";
+            document.getElementById('orderList').innerText = "Please login to view orders.";
+        }
 
         async function addProduct() {
             const name = document.getElementById('prodName').value;
@@ -64,7 +139,7 @@
             try {
                 const res = await fetch(`${API_BASE}/products`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ name, price: parseFloat(price), description: desc })
                 });
 
@@ -76,7 +151,13 @@
                     document.getElementById('prodPrice').value = '';
                     document.getElementById('prodDesc').value = '';
                 } else {
-                    document.getElementById('addResult').innerHTML = '<span style="color:red">Error adding product</span>';
+                    const errorData = await res.json();
+                    let errorMsg = '<span style="color:red">Error(s):<br>';
+                    for (const [key, value] of Object.entries(errorData)) {
+                         errorMsg += `<b>${key}</b>: ${value}<br>`;
+                    }
+                    errorMsg += '</span>';
+                    document.getElementById('addResult').innerHTML = errorMsg;
                 }
             } catch (e) {
                 console.error(e);
@@ -93,15 +174,32 @@
         }
 
         async function loadOrders() {
-            const res = await fetch(`${API_BASE}/orders`);
-            const data = await res.json();
-            const list = document.getElementById('orderList');
-            list.innerHTML = data.map(o => 
-                `<div class="item">
-                    <strong>Order #${o.id}</strong> - Total: $${o.totalPrice}
-                    <br><small>Items: ${o.products.map(p => p.name).join(', ')}</small>
-                </div>`
-            ).join('');
+            if (!authHeader) {
+                 document.getElementById('orderList').innerText = "Login required to view orders.";
+                 return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/orders`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.status === 401) {
+                    document.getElementById('orderList').innerText = "Unauthorized. Please login.";
+                    return;
+                }
+
+                const data = await res.json();
+                const list = document.getElementById('orderList');
+                list.innerHTML = data.map(o => 
+                    `<div class="item">
+                        <strong>Order #${o.id}</strong> - Total: $${o.totalPrice}
+                        <br><small>Items: ${o.products.map(p => p.name).join(', ')}</small>
+                    </div>`
+                ).join('');
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         async function placeOrder() {
@@ -113,10 +211,15 @@
                 return;
             }
 
+            if (!authHeader) {
+                alert('You must Login first!');
+                return;
+            }
+
             try {
                 const res = await fetch(`${API_BASE}/orders`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(ids)
                 });
                 
@@ -125,7 +228,7 @@
                     document.getElementById('orderResult').innerHTML = `<span style="color:green">Order #${order.id} placed successfully!</span>`;
                     loadOrders(); // Refresh list
                 } else {
-                    document.getElementById('orderResult').innerHTML = `<span style="color:red">Error: ${res.statusText}</span>`;
+                    document.getElementById('orderResult').innerHTML = `<span style="color:red">Error: ${res.statusText} (${res.status})</span>`;
                 }
             } catch (e) {
                 document.getElementById('orderResult').innerHTML = `<span style="color:red">Error: ${e.message}</span>`;
