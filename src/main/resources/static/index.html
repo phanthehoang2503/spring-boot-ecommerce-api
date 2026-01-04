@@ -41,6 +41,7 @@
             <div style="display: flex; flex-direction: column; gap: 10px; max-width: 300px;">
                 <input type="text" id="prodName" placeholder="Name (e.g. Phone)">
                 <input type="number" id="prodPrice" placeholder="Price (e.g. 500)">
+                <input type="number" id="prodQty" placeholder="Quantity (e.g. 10)">
                 <input type="text" id="prodDesc" placeholder="Description">
                 <button onclick="addProduct()">Add Product</button>
             </div>
@@ -129,10 +130,11 @@
         async function addProduct() {
             const name = document.getElementById('prodName').value;
             const price = document.getElementById('prodPrice').value;
+            const qty = document.getElementById('prodQty').value;
             const desc = document.getElementById('prodDesc').value;
 
-            if (!name || !price) {
-                alert('Name and Price are required');
+            if (!name || !price || !qty) {
+                alert('Name, Price and Quantity are required');
                 return;
             }
 
@@ -140,7 +142,7 @@
                 const res = await fetch(`${API_BASE}/products`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
-                    body: JSON.stringify({ name, price: parseFloat(price), description: desc })
+                    body: JSON.stringify({ name, price: parseFloat(price), quantity: parseInt(qty), description: desc })
                 });
 
                 if (res.ok) {
@@ -149,6 +151,7 @@
                     // Clear inputs
                     document.getElementById('prodName').value = '';
                     document.getElementById('prodPrice').value = '';
+                    document.getElementById('prodQty').value = '';
                     document.getElementById('prodDesc').value = '';
                 } else {
                     const errorData = await res.json();
@@ -169,7 +172,15 @@
             const data = await res.json();
             const list = document.getElementById('productList');
             list.innerHTML = data.map(p => 
-                `<div class="item"><strong>ID ${p.id}</strong>: ${p.name} - $${p.price}</div>`
+                `<div class="item" style="${p.quantity < 1 ? 'opacity:0.5' : ''}">
+                    <strong>ID ${p.id}</strong>: ${p.name} - $${p.price} 
+                    <span style="background:${p.quantity > 0 ? '#d4edda' : '#f8d7da'}; padding: 2px 5px; border-radius: 4px; font-size: 0.9em;">
+                        Stock: ${p.quantity}
+                    </span>
+                    ${p.quantity < 1 ? '(OUT OF STOCK)' : ''}
+                    <button onclick="restock(${p.id})" style="padding: 2px 5px; font-size: 0.8em; margin-left: 10px;">Restock</button>
+                    <button onclick="deleteProduct(${p.id})" style="padding: 2px 5px; font-size: 0.8em; margin-left: 5px; background: #dc3545; color: white; border: none;">Del</button>
+                </div>`
             ).join('');
         }
 
@@ -232,6 +243,58 @@
                 }
             } catch (e) {
                 document.getElementById('orderResult').innerHTML = `<span style="color:red">Error: ${e.message}</span>`;
+            }
+        }
+
+        async function restock(id) {
+            const qty = prompt("How many to add?");
+            if (!qty) return;
+            await fetch(`${API_BASE}/products/${id}/add-stock`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ quantity: parseInt(qty) })
+            });
+            loadProducts();
+        }
+    
+        async function restock(id) {
+            const qty = prompt("How many items to add?");
+            if (!qty) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/products/${id}/add-stock`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ quantity: parseInt(qty) })
+                });
+
+                if (res.ok) {
+                    alert("Stock added!");
+                    loadProducts();
+                } else {
+                    alert("Failed to restock. (Are you logged in?)");
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm("Are you sure you want to delete this product?")) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/products/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (res.ok) {
+                    loadProducts();
+                } else {
+                    alert("Failed to delete.");
+                }
+            } catch(e) {
+                console.error(e);
             }
         }
 

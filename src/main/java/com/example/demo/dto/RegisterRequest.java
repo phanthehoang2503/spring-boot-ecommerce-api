@@ -1,9 +1,5 @@
 package com.example.demo.dto;
 
-import lombok.Data;
+public record RegisterRequest(String username, String password) {
 
-@Data
-public class RegisterRequest {
-  private String username;
-  private String password;
 }

@@ -29,4 +29,6 @@ public class Product {
 
   @Min(value = 0, message = "Quantity cannot be negative")
   private int quantity;
+
+  private boolean deleted = false;
 }

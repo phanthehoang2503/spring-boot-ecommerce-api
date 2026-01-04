@@ -24,20 +24,18 @@ public class UserController {
   public UserResponse register(@RequestBody RegisterRequest request) {
     // 1. DTO -> entity
     UserEntity user = new UserEntity();
-    user.setUsername(request.getUsername());
+    user.setUsername(request.username());
     // Hash password
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
+    user.setPassword(passwordEncoder.encode(request.password()));
     user.setRole("USER");
 
     // 2. Save user
     UserEntity savedUser = userRepository.save(user);
 
     // 3. Entity -> DTO
-    UserResponse res = new UserResponse();
-    res.setId(savedUser.getId());
-    res.setUsername(savedUser.getUsername());
-    res.setRole(savedUser.getRole());
-
-    return res;
+    return new UserResponse(
+        savedUser.getId(),
+        savedUser.getUsername(),
+        savedUser.getRole());
   }
 }

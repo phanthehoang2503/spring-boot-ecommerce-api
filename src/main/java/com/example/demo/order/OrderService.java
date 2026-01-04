@@ -7,10 +7,14 @@ import com.example.demo.inventory.InventoryService;
 import com.example.demo.payment.PaymentService;
 import com.example.demo.product.Product;
 import com.example.demo.product.ProductService;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 public class OrderService {
   private final OrderRepository orderRepository;
   private final ProductService productService;
@@ -47,8 +51,7 @@ public class OrderService {
 
     // Save order object to DB
     Order savedOrder = orderRepository.save(order);
-    System.out.println("Order saved to DB with ID: "
-        + savedOrder.getId());
+    log.info("Order saved to DB with ID: {}", savedOrder.getId());
 
     // Process Payment
     paymentService.processPayment(total);
