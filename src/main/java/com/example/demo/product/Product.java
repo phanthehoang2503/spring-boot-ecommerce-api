@@ -26,4 +26,7 @@ public class Product {
   private double price;
 
   private String description;
+
+  @Min(value = 0, message = "Quantity cannot be negative")
+  private int quantity;
 }

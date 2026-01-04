@@ -16,10 +16,12 @@ public class ProductService {
     return productRepository.findAll();
   }
 
+  @SuppressWarnings("null")
   public Product saveProduct(Product product) {
     return productRepository.save(product);
   }
 
+  @SuppressWarnings("null")
   public List<Product> getProductsByIds(List<Long> ids) {
     return productRepository.findAllById(ids);
   }
