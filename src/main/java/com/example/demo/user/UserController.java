@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.dto.RegisterRequest;
 import com.example.demo.dto.UserResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
@@ -21,6 +24,9 @@ public class UserController {
   }
 
   @PostMapping("/register")
+  @Operation(summary = "Register a new user", description = "Creates a new user account with a hashed password.")
+  @ApiResponse(responseCode = "200", description = "User registered successfully")
+  @ApiResponse(responseCode = "400", description = "Invalid input")
   public UserResponse register(@RequestBody RegisterRequest request) {
     // 1. DTO -> entity
     UserEntity user = new UserEntity();
